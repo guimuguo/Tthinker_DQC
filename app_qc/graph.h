@@ -24,7 +24,6 @@ int gnmin_size;
 int gnmax_size;
 int gnmin_deg_o;
 int gnmin_deg_i;
-//Guimu-condense
 int *index2id;
 float disk_time;
 
@@ -720,7 +719,6 @@ inline void Graph::Output1Clique(VERTEX *pclique, int nclique_size, FILE *gfpout
 
 }
 
-//Guimu-condense:
 void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
 {
 	int i, j, nvertex_no, norder;
@@ -1046,7 +1044,6 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 
 	qsort(&pvertices[1], num_of_vertices-1, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
 
-	//Guimu-condense: condense the graph
 	CompressGraph(pvertices, num_of_cands);
 
 
