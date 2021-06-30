@@ -14,13 +14,13 @@ We target a **single-machine multi-core** environment, since a distributed clust
 - **The `system` folder:** it contains the code for our T-thinker engine, which is a task-based general-purpose framework for writing parallel programs. In the folder, `worker.h` is the main thread that creates other computing threads (aka. compers) to work on tasks. When task queues are near empty, T-thinker will generate new tasks from data items to refill the queues; while if too many tasks are created (e.g. due to decomposing a big task), tasks will be spilled to local disk to keep memory bounded, and these tasks will be loaded back for processing when task queues have space. The figure below shows the tuned system parameters for our task queues:
 
 <p align="center">
-<img src="imgs/img2.PNG" width="450" height="300" />
+<img src="imgs/img2.png" width="450" height="300" />
 </p>
 
 - **The `app_qc` folder:** this is the application code for mining maximal directed quasi-cliques, which runs on top of T-thinker. The figure below shows an example of the second largest quasi-clique for the [PolBlogs](http://konect.cc/networks/dimacs10-polblogs/) dataset (directed network of hyperlinks between political blogs) found by our application code.
 
 <p align="center">
-<img src="imgs/img1.PNG" width="450" height="300" />
+<img src="imgs/img1.png" width="450" height="300" />
 </p>
 
 
