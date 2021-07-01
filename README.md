@@ -50,7 +50,7 @@ In each folder, `app_qc` and `maximal_check`, there is a Makefile. Just enter ea
 
 
 ## Demo
-Click [here](https://colab.research.google.com/github/yanlab19870714/Tthinker/blob/main/demo/demo.ipynb) for a demo on Google Colab. The notebook first clones the repo and download the [PolBlogs](http://konect.cc/networks/dimacs10-polblogs/) dataset. It then runs the quasi-clique mining program to find maximal results. Finally, it plots the first and second largest quasi-cliques.
+Click [here](https://colab.research.google.com/github/guimuguo/Tthinker_DQC/blob/main/demo/demo.ipynb#scrollTo=vyX7DM2SLG_a) for a demo on Google Colab. The notebook first clones the repo and download the [PolBlogs](http://konect.cc/networks/dimacs10-polblogs/) dataset. It then runs the quasi-clique mining program to find maximal results. Finally, it plots the first and second largest quasi-cliques.
 
 ## Requirements
 
