@@ -14,7 +14,7 @@ else:
     store = {}
     fn = sys.argv[1]
     with open(fn) as f:
-        f_csv = csv.reader(f, delimiter=' ')
+        f_csv = csv.reader(f, delimiter='\t')
         for row in f_csv:
             vid = int(row[0])
             adj = int(row[1])
