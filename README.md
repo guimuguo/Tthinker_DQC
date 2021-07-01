@@ -10,7 +10,7 @@ We target a **single-machine multi-core** environment, since a distributed clust
   <img src="https://github.com/guimuguo/Tthinker_DQC/blob/main/imgs/img3.PNG" width="450" height="300" />
 <!-- </p> -->
 
-<img src="imgs/img3.PNG" width="450" height="300" />
+<img align="left" src="https://github.com/guimuguo/Tthinker_DQC/blob/main/imgs/img3.PNG" width="450" height="300" />
 
 ## Program Checklist
 - **The `system` folder:** it contains the code for our T-thinker engine, which is a task-based general-purpose framework for writing parallel programs. In the folder, `worker.h` is the main thread that creates other computing threads (aka. compers) to work on tasks. When task queues are near empty, T-thinker will generate new tasks from data items to refill the queues; while if too many tasks are created (e.g. due to decomposing a big task), tasks will be spilled to local disk to keep memory bounded, and these tasks will be loaded back for processing when task queues have space. The figure below shows the tuned system parameters for our task queues:
