@@ -23,7 +23,7 @@ We target a **single-machine multi-core** environment, since a distributed clust
 - **The `app_qc` folder:** this is the application code for mining maximal directed quasi-cliques, which runs on top of T-thinker. The figure below shows an example of the second largest quasi-clique for the [Google-Web](https://snap.stanford.edu/data/web-Google.html) dataset (directed network of hyperlinks between web pages) found by our application code.
 
 <p align="center">
-<img src="https://github.com/guimuguo/Tthinker_DQC/blob/main/imgs/img1.PN" width="450" height="300" />
+<img src="https://github.com/guimuguo/Tthinker_DQC/blob/main/imgs/img1.PNG" width="450" height="300" />
 </p>
 
 
