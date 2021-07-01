@@ -57,10 +57,10 @@ Click [here](https://colab.research.google.com/drive/1Cn0cB9uZ8uOtlPbAfTWw9g0NM9
 * C++11
 * [OpenMP](https://www.openmp.org/)
 
-## Contributors
+<!-- ## Contributors
 * **Guimu Guo (guimuguo@uab.edu)**
 * **Da Yan (yanda@uab.edu)**
 * **Lyuheng Yuan (lyuan@uab.edu)**
 * **Jalal Khalil (jalalk@uab.edu)**
 
-The authors are affiliated with the Department of Computer Science, University of Alabama at Birmingham
+The authors are affiliated with the Department of Computer Science, University of Alabama at Birmingham -->
