@@ -1,7 +1,7 @@
 # Maximal Directed Quasi-Clique Mining in a Large Graph
 
 This project develops a parallel solution for mining maximal quasi-cliques on a large directed graph such as web graphs and social networks.
-We generalize the concept of quasi-cliques to directed graphs by proposing (γ<sub>1</sub>, γ<sub>2</sub>)-quasi-cliques which have density requirements in both inbound and outbound directions of each vertex in a quasi-clique. An efficient recursive algorithm is proposed to and maximal (γ<sub>1</sub>, γ<sup>2</sup>)-quasi-cliques which integrates many effective pruning rules that are validated by ablation studies. Our algorithm is also fully compatible with the recent parallel compute-intensive graph mining paradigm G-thinker, and can thus scale up and scale out effectively.
+We generalize the concept of quasi-cliques to directed graphs by proposing (γ<sub>1</sub>, γ<sub>2</sub>)-quasi-cliques which have density requirements in both inbound and outbound directions of each vertex in a quasi-clique. An efficient recursive algorithm is proposed to and maximal (γ<sub>1</sub>, γ<sub>2</sub>)-quasi-cliques which integrates many effective pruning rules that are validated by ablation studies. Our algorithm is also fully compatible with the recent parallel compute-intensive graph mining paradigm G-thinker, and can thus scale up and scale out effectively.
 
 We target a **single-machine multi-core** environment, since a distributed cluster is not always readily available to an average end user while most modern computers are multi-core. Our system achieved a close to ideal speedup ratio as illustrated in the figure below for the [Bitcoin](http://konect.cc/networks/soc-sign-bitcoinotc/) dataset.
 
