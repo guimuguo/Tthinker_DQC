@@ -131,7 +131,9 @@ int main(int argc, char **argv)
 
     auto end_t = steady_clock::now();
     cout << "disk time:"<<disk_time<<endl;
-    cout << "Running time: " << (float)duration_cast<milliseconds>(end_t - start_t).count() / 1000 - disk_time<< " s" << endl;
+    cout << "2-hop time:"<<hop2_time<<endl;
+    cout << "Running time(without disk time): " << (float)duration_cast<milliseconds>(end_t - start_t).count() / 1000 - disk_time<< " s" << endl;
+    cout << "Running time(without disk time and 2hop): " << (float)duration_cast<milliseconds>(end_t - start_t).count() / 1000 - disk_time - hop2_time<< " s" << endl;
 
     foutTime << (double)duration_cast<milliseconds>(end_t - start_t).count() / 1000 << " s" << endl;
     foutTime.close();

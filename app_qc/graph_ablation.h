@@ -2,7 +2,8 @@
 #define GRAPH_H
 
 #define BOUND
-#define COVER
+//#define COVER
+#define FIRST_COVER
 
 #include <vector>
 #include <stdlib.h>
@@ -14,6 +15,7 @@
 #include "../system/ioser.h"
 #include "data.h"
 #include <map>
+#include <parallel/algorithm>
 #include <omp.h>
 
 using namespace std::chrono;
@@ -29,6 +31,7 @@ int gnmin_deg_i;
 //Guimu-condense
 int *index2id;
 float disk_time;
+float hop2_time;
 
 struct VERTEX // variables start with 'b' is boolean, 'n' is integer
 {
@@ -648,6 +651,7 @@ inline int* Graph::NewCGIntArray(int nlen)
 int comp_int(const void *e1, const void *e2);
 int comp_int_des(const void* e1, const void *e2);
 int comp_vertex_freq(const void *e1, const void *e2);
+bool comp_vertex_freq_parallel(const VERTEX p2, const VERTEX p1);
 int comp_vertex_clqdeg(const void *e1, const void *e2);
 
 //
@@ -873,7 +877,10 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 			|| gdmin_deg_ratio_i<=(double)(num_of_vertices-2)/(num_of_vertices-1)) //whether 2-hop neighbors need to be considered (otherwise, it only need to consider one-hop neighbors)
 	{
 		mblvl2_flag = true;
+		l_start = steady_clock::now();
 		GenLevel2NBs();
+		l_end = steady_clock::now();
+		hop2_time = (float)duration_cast<milliseconds>(l_end - l_start).count() / 1000;
 	}
 	else
 		mblvl2_flag = false;
@@ -1016,7 +1023,7 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 	nmax_deg = 0;
 	nmaxdeg_vertex = 0;
 
-#ifdef COVER
+#ifdef FIRST_COVER
 	for(i=0;i<num_of_vertices;i++)
 	{
 		if(pvertices[i].bis_cand)
@@ -1047,10 +1054,13 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 		pvertices[0] = onevertex;
 	}
 
-	qsort(&pvertices[1], num_of_vertices-1, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
+//	qsort(&pvertices[1], num_of_vertices-1, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
+
+	__gnu_parallel::sort(&pvertices[1], &pvertices[1]+num_of_vertices-1, comp_vertex_freq_parallel);
 
 #else
-	qsort(&pvertices[0], num_of_vertices, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
+//	qsort(&pvertices[0], num_of_vertices, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
+	__gnu_parallel::sort(&pvertices[0], &pvertices[0]+num_of_vertices, comp_vertex_freq_parallel);
 #endif
 
 	//Guimu-condense: condense the graph
@@ -3690,6 +3700,261 @@ int Graph::LoadGraph(char* szgraph_file) // create 1-hop neighbors
 }
 
 
+//void Graph::GenLevel2NBs()  // create 2-hop neighbors
+//{
+//	int** set_out_single, **set_in_single, **temp_array, **temp_array2, **pnb_list;
+//	bool** pbflags;
+//	set_out_single = new int*[num_compers];
+//	set_in_single = new int*[num_compers];
+//	temp_array = new int*[num_compers];
+//	temp_array2 = new int*[num_compers];
+//	pnb_list = new int*[num_compers];
+//	pbflags = new bool*[num_compers];
+//
+//
+//	//-------
+//#pragma omp parallel for schedule(dynamic, 1) num_threads(num_compers)
+//	for(int i=0; i<num_compers; i++)
+//	{
+//		set_out_single[i] = new int[mnum_of_vertices];
+//		set_in_single[i] = new int[mnum_of_vertices];
+//		temp_array[i] = new int[mnum_of_vertices];
+//		temp_array2[i] = new int[mnum_of_vertices];
+//		pnb_list[i] = new int[mnum_of_vertices];
+//		pbflags[i] = new bool[mnum_of_vertices];
+//
+//		memset(set_out_single[i], 0, sizeof(int)*mnum_of_vertices);
+//		memset(set_in_single[i], 0, sizeof(int)*mnum_of_vertices);
+//		memset(temp_array[i], 0, sizeof(int)*mnum_of_vertices); //out
+//		memset(temp_array2[i], 0, sizeof(int)*mnum_of_vertices); //in
+//		memset(pbflags[i], 0, sizeof(bool)*mnum_of_vertices);
+//	}
+//
+//	//-------
+//	mpplvl2_nbs = new int*[mnum_of_vertices]; // mpplvl2_nbs[i] = node i's level-2 neighbors, first element keeps the 2-hop-list length
+//	//need to delete
+//#pragma omp parallel for schedule(dynamic, 1) num_threads(num_compers)
+//	for(int i=0; i<mnum_of_vertices; i++)
+//	{
+//		vector<int> bi_nbs;
+//		vector<int> vec_out;
+//		vector<int> vec_in;
+//		int tid = omp_get_thread_num();
+//
+//		int out_size = mppadj_lists_o[i][0];
+//		int in_size = mppadj_lists_i[i][0];
+//		if(out_size > 0 && in_size > 0){
+//			for(int j=1; j<=out_size; j++)
+//				temp_array[tid][mppadj_lists_o[i][j]] = 1;
+//
+//			for(int j=1; j<=in_size; j++)
+//				temp_array2[tid][mppadj_lists_i[i][j]] = 1;
+//
+//			//get bidirectional connected neighbors, O and I
+//
+//			for(int j=1; j<=out_size; j++)
+//			{
+//				int v = mppadj_lists_o[i][j];
+//				if(temp_array2[tid][v] == 1)
+//					bi_nbs.push_back(v);
+//				else
+//				{
+//					set_out_single[tid][v] = 1;
+//					vec_out.push_back(v);
+//				}
+//			}
+//
+//			for(int j=1; j<=in_size; j++)
+//			{
+//				int v = mppadj_lists_i[i][j];
+//				if(temp_array[tid][v] == 0)
+//				{
+//					set_in_single[tid][v] = 1;
+//					vec_in.push_back(v);
+//				}
+//			}
+//
+//			// repeat pruning
+//			int count = 0;
+//			int round = 1;
+//			vector<int> temp_vec_out, temp_vec_in;
+//			int nb;
+//			int out_single_size, in_single_size;
+//			do {
+//				//update So and Si
+//				out_single_size = vec_out.size();
+//				in_single_size = vec_in.size();
+//
+//				for(int j=0; j<bi_nbs.size();j++)
+//				{
+//					vec_out.push_back(bi_nbs[j]);
+//					vec_in.push_back(bi_nbs[j]);
+//				}
+//
+//				//check the 1-hop neighbors which only connected in one direction
+//				for(int j=0; j<vec_out.size();j++)
+//				{
+//					int vn = vec_out[j];
+//					for(int k=1; k<=mppadj_lists_o[vn][0]; k++)
+//					{
+//						nb = mppadj_lists_o[vn][k];
+//						if(set_in_single[tid][nb] == round)
+//						{
+//							set_in_single[tid][nb]++;
+//							temp_vec_in.push_back(nb);
+//						}
+//					}
+//				}
+//
+//				for(int j=0; j<vec_in.size();j++)
+//				{
+//					int vn = vec_in[j];
+//					for(int k=1; k<=mppadj_lists_i[vn][0]; k++)
+//					{
+//						nb = mppadj_lists_i[vn][k];
+//						if(set_out_single[tid][nb] == round)
+//						{
+//							set_out_single[tid][nb]++;
+//							temp_vec_out.push_back(nb);
+//						}
+//					}
+//				}
+//
+//				vec_out.swap(temp_vec_out);
+//				vec_in.swap(temp_vec_in);
+//				temp_vec_out.clear();
+//				temp_vec_in.clear();
+//				round++;
+//			} while(vec_out.size()<out_single_size || vec_in.size()<in_single_size);
+//
+//			//reset single set
+//			for(int j=1; j<=out_size; j++)
+//				set_out_single[tid][mppadj_lists_o[i][j]] = 0;
+//
+//			for(int j=1; j<=in_size; j++)
+//				set_in_single[tid][mppadj_lists_i[i][j]] = 0;
+//
+//			//reset gptemp_array
+//			for(int j=1; j<=out_size; j++)
+//				temp_array[tid][mppadj_lists_o[i][j]] = 0;
+//
+//			for(int j=1; j<=in_size; j++)
+//				temp_array2[tid][mppadj_lists_i[i][j]] = 0;
+//
+//			//add bidirectional neighbors into 2hop nbs
+//			int nlist_len = 0;
+//			for (int j=0; j<bi_nbs.size(); j++)
+//			{
+//				pnb_list[tid][nlist_len++] = bi_nbs[j];
+//				pbflags[tid][bi_nbs[j]] = true;
+//			}
+//
+//			//add single out & in 1hop neighbors
+//			for (int j=0; j<vec_out.size(); j++)
+//			{
+//				pnb_list[tid][nlist_len++] = vec_out[j];
+//				pbflags[tid][vec_out[j]] = true;
+//			}
+//			for (int j=0; j<vec_in.size(); j++)
+//			{
+//				pnb_list[tid][nlist_len++] = vec_in[j];
+//				pbflags[tid][vec_in[j]] = true;
+//			}
+//
+//			//add the straightforward 2hop neighbors
+//			for(int j=0; j<bi_nbs.size();j++)
+//			{
+//				vec_out.push_back(bi_nbs[j]);
+//				vec_in.push_back(bi_nbs[j]);
+//			}
+//			vector<int> temp_vec;
+//			for (int j=0; j<vec_out.size(); j++)
+//			{
+//				int u = vec_out[j];
+//				for(int k=1; k<=mppadj_lists_o[u][0]; k++)
+//				{
+//					int v = mppadj_lists_o[u][k];
+//					if(v != i && pbflags[tid][v] == false)
+//					{
+//						temp_vec.push_back(v);
+//						temp_array[tid][v]=1;
+//					}
+//				}
+//			}
+//
+//			for (int j=0; j<vec_out.size(); j++)
+//			{
+//				int u = vec_out[j];
+//				for(int k=1; k<=mppadj_lists_i[u][0]; k++)
+//				{
+//					int v = mppadj_lists_i[u][k];
+//					if(temp_array[tid][v] == 1)
+//						temp_array[tid][v]=2;
+//				}
+//			}
+//
+//			for (int j=0; j<vec_in.size(); j++)
+//			{
+//				int u = vec_in[j];
+//				for(int k=1; k<=mppadj_lists_o[u][0]; k++)
+//				{
+//					int v = mppadj_lists_o[u][k];
+//					if(temp_array[tid][v] == 2)
+//						temp_array[tid][v]=3;
+//				}
+//			}
+//
+//			for (int j=0; j<vec_in.size(); j++)
+//			{
+//				int u = vec_in[j];
+//				for(int k=1; k<=mppadj_lists_i[u][0]; k++)
+//				{
+//					int v = mppadj_lists_i[u][k];
+//					if(temp_array[tid][v] == 3 && pbflags[tid][v] == false)
+//					{
+//						pbflags[tid][v] = true;
+//						pnb_list[tid][nlist_len++] = v;
+//					}
+//				}
+//			}
+//
+//			//reset gptemp_array
+//			int temp_vec_size = temp_vec.size();
+//			for(int j=0; j<temp_vec_size; j++)
+//				temp_array[tid][temp_vec[j]] = 0;
+//
+//			if(nlist_len>1)
+//				qsort(pnb_list[tid], nlist_len, sizeof(int), comp_int);
+//			mpplvl2_nbs[i] = new int[nlist_len+1];
+//			mpplvl2_nbs[i][0] = nlist_len; //first element keeps the 2-hop-list length
+//			if(nlist_len>0)
+//				memcpy(&mpplvl2_nbs[i][1], pnb_list[tid], sizeof(int)*nlist_len);
+//
+//			for(int j=0;j<nlist_len;j++)
+//				pbflags[tid][pnb_list[tid][j]] = false;
+//		} else {
+//			mpplvl2_nbs[i] = new int[1];
+//			mpplvl2_nbs[i][0] = 0;
+//		}
+//	}
+//
+//	for(int i=0; i<num_compers; i++)
+//	{
+//		delete []pbflags[i];
+//		delete []pnb_list[i];
+//		delete []set_out_single[i];
+//		delete []set_in_single[i];
+//		delete []temp_array[i];
+//		delete []temp_array2[i];
+//	}
+//	delete []pbflags;
+//	delete []pnb_list;
+//	delete []set_out_single;
+//	delete []set_in_single;
+//	delete []temp_array;
+//	delete []temp_array2;
+//}
+
 void Graph::GenLevel2NBs()  // create 2-hop neighbors
 {
 	int** set_out_single, **set_in_single, **temp_array, **temp_array2, **pnb_list;
@@ -3700,7 +3965,6 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 	temp_array2 = new int*[num_compers];
 	pnb_list = new int*[num_compers];
 	pbflags = new bool*[num_compers];
-
 
 	//-------
 #pragma omp parallel for schedule(dynamic, 1) num_threads(num_compers)
@@ -3721,19 +3985,30 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 	}
 
 	//-------
+//	int* set_out_single = new int[mnum_of_vertices];
+//	int* set_in_single = new int[mnum_of_vertices];
+//	memset(set_out_single, 0, sizeof(int)*mnum_of_vertices);
+//	memset(set_in_single, 0, sizeof(int)*mnum_of_vertices);
+
 	mpplvl2_nbs = new int*[mnum_of_vertices]; // mpplvl2_nbs[i] = node i's level-2 neighbors, first element keeps the 2-hop-list length
-	//need to delete
+	vector<int> bi_nbs[num_compers];
+	vector<int> vec_out[num_compers];
+	vector<int> vec_in[num_compers];
+	vector<int> temp_vec_out[num_compers];
+	vector<int> temp_vec_in[num_compers];
+	vector<int> temp_vec[num_compers];
+
+	auto start = steady_clock::now();
+
 #pragma omp parallel for schedule(dynamic, 1) num_threads(num_compers)
 	for(int i=0; i<mnum_of_vertices; i++)
 	{
-		vector<int> bi_nbs;
-		vector<int> vec_out;
-		vector<int> vec_in;
 		int tid = omp_get_thread_num();
 
 		int out_size = mppadj_lists_o[i][0];
 		int in_size = mppadj_lists_i[i][0];
-		if(out_size > 0 && in_size > 0){
+		if(out_size > 0 && in_size > 0)
+		{
 			for(int j=1; j<=out_size; j++)
 				temp_array[tid][mppadj_lists_o[i][j]] = 1;
 
@@ -3746,11 +4021,11 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 			{
 				int v = mppadj_lists_o[i][j];
 				if(temp_array2[tid][v] == 1)
-					bi_nbs.push_back(v);
+					bi_nbs[tid].push_back(v);
 				else
 				{
 					set_out_single[tid][v] = 1;
-					vec_out.push_back(v);
+					vec_out[tid].push_back(v);
 				}
 			}
 
@@ -3760,62 +4035,60 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 				if(temp_array[tid][v] == 0)
 				{
 					set_in_single[tid][v] = 1;
-					vec_in.push_back(v);
+					vec_in[tid].push_back(v);
 				}
 			}
 
 			// repeat pruning
-			int count = 0;
 			int round = 1;
-			vector<int> temp_vec_out, temp_vec_in;
 			int nb;
 			int out_single_size, in_single_size;
 			do {
 				//update So and Si
-				out_single_size = vec_out.size();
-				in_single_size = vec_in.size();
+				out_single_size = vec_out[tid].size();
+				in_single_size = vec_in[tid].size();
 
-				for(int j=0; j<bi_nbs.size();j++)
+				for(int j=0; j<bi_nbs[tid].size();j++)
 				{
-					vec_out.push_back(bi_nbs[j]);
-					vec_in.push_back(bi_nbs[j]);
+					vec_out[tid].push_back(bi_nbs[tid][j]);
+					vec_in[tid].push_back(bi_nbs[tid][j]);
 				}
 
 				//check the 1-hop neighbors which only connected in one direction
-				for(int j=0; j<vec_out.size();j++)
+				for(int j=0; j<vec_out[tid].size();j++)
 				{
-					int vn = vec_out[j];
+					int vn = vec_out[tid][j];
 					for(int k=1; k<=mppadj_lists_o[vn][0]; k++)
 					{
 						nb = mppadj_lists_o[vn][k];
 						if(set_in_single[tid][nb] == round)
 						{
 							set_in_single[tid][nb]++;
-							temp_vec_in.push_back(nb);
+							temp_vec_in[tid].push_back(nb);
 						}
 					}
 				}
 
-				for(int j=0; j<vec_in.size();j++)
+				for(int j=0; j<vec_in[tid].size();j++)
 				{
-					int vn = vec_in[j];
+					int vn = vec_in[tid][j];
 					for(int k=1; k<=mppadj_lists_i[vn][0]; k++)
 					{
 						nb = mppadj_lists_i[vn][k];
 						if(set_out_single[tid][nb] == round)
 						{
 							set_out_single[tid][nb]++;
-							temp_vec_out.push_back(nb);
+							temp_vec_out[tid].push_back(nb);
 						}
 					}
 				}
 
-				vec_out.swap(temp_vec_out);
-				vec_in.swap(temp_vec_in);
-				temp_vec_out.clear();
-				temp_vec_in.clear();
+				vec_out[tid].swap(temp_vec_out[tid]);
+				vec_in[tid].swap(temp_vec_in[tid]);
+				temp_vec_out[tid].clear();
+				temp_vec_in[tid].clear();
 				round++;
-			} while(vec_out.size()<out_single_size || vec_in.size()<in_single_size);
+			} while(vec_out[tid].size()<out_single_size || vec_in[tid].size()<in_single_size);
 
 			//reset single set
 			for(int j=1; j<=out_size; j++)
@@ -3833,48 +4106,48 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 
 			//add bidirectional neighbors into 2hop nbs
 			int nlist_len = 0;
-			for (int j=0; j<bi_nbs.size(); j++)
+			for (int j=0; j<bi_nbs[tid].size(); j++)
 			{
-				pnb_list[tid][nlist_len++] = bi_nbs[j];
-				pbflags[tid][bi_nbs[j]] = true;
+				pnb_list[tid][nlist_len++] = bi_nbs[tid][j];
+				pbflags[tid][bi_nbs[tid][j]] = true;
 			}
 
 			//add single out & in 1hop neighbors
-			for (int j=0; j<vec_out.size(); j++)
+			for (int j=0; j<vec_out[tid].size(); j++)
 			{
-				pnb_list[tid][nlist_len++] = vec_out[j];
-				pbflags[tid][vec_out[j]] = true;
+				pnb_list[tid][nlist_len++] = vec_out[tid][j];
+				pbflags[tid][vec_out[tid][j]] = true;
 			}
-			for (int j=0; j<vec_in.size(); j++)
+			for (int j=0; j<vec_in[tid].size(); j++)
 			{
-				pnb_list[tid][nlist_len++] = vec_in[j];
-				pbflags[tid][vec_in[j]] = true;
+				pnb_list[tid][nlist_len++] = vec_in[tid][j];
+				pbflags[tid][vec_in[tid][j]] = true;
 			}
 
 			//add the straightforward 2hop neighbors
-			for(int j=0; j<bi_nbs.size();j++)
+			for(int j=0; j<bi_nbs[tid].size();j++)
 			{
-				vec_out.push_back(bi_nbs[j]);
-				vec_in.push_back(bi_nbs[j]);
+				vec_out[tid].push_back(bi_nbs[tid][j]);
+				vec_in[tid].push_back(bi_nbs[tid][j]);
 			}
-			vector<int> temp_vec;
-			for (int j=0; j<vec_out.size(); j++)
+
+			for (int j=0; j<vec_out[tid].size(); j++)
 			{
-				int u = vec_out[j];
+				int u = vec_out[tid][j];
 				for(int k=1; k<=mppadj_lists_o[u][0]; k++)
 				{
 					int v = mppadj_lists_o[u][k];
-					if(v != i && pbflags[tid][v] == false)
+					if(v != i && pbflags[tid][v] == false && temp_array[tid][v] != 1)
 					{
-						temp_vec.push_back(v);
+						temp_vec[tid].push_back(v);
 						temp_array[tid][v]=1;
 					}
 				}
 			}
 
-			for (int j=0; j<vec_out.size(); j++)
+			for (int j=0; j<vec_out[tid].size(); j++)
 			{
-				int u = vec_out[j];
+				int u = vec_out[tid][j];
 				for(int k=1; k<=mppadj_lists_i[u][0]; k++)
 				{
 					int v = mppadj_lists_i[u][k];
@@ -3883,9 +4156,9 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 				}
 			}
 
-			for (int j=0; j<vec_in.size(); j++)
+			for (int j=0; j<vec_in[tid].size(); j++)
 			{
-				int u = vec_in[j];
+				int u = vec_in[tid][j];
 				for(int k=1; k<=mppadj_lists_o[u][0]; k++)
 				{
 					int v = mppadj_lists_o[u][k];
@@ -3894,9 +4167,9 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 				}
 			}
 
-			for (int j=0; j<vec_in.size(); j++)
+			for (int j=0; j<vec_in[tid].size(); j++)
 			{
-				int u = vec_in[j];
+				int u = vec_in[tid][j];
 				for(int k=1; k<=mppadj_lists_i[u][0]; k++)
 				{
 					int v = mppadj_lists_i[u][k];
@@ -3907,11 +4180,10 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 					}
 				}
 			}
-
 			//reset gptemp_array
-			int temp_vec_size = temp_vec.size();
+			int temp_vec_size = temp_vec[tid].size();
 			for(int j=0; j<temp_vec_size; j++)
-				temp_array[tid][temp_vec[j]] = 0;
+				temp_array[tid][temp_vec[tid][j]] = 0;
 
 			if(nlist_len>1)
 				qsort(pnb_list[tid], nlist_len, sizeof(int), comp_int);
@@ -3922,11 +4194,19 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 
 			for(int j=0;j<nlist_len;j++)
 				pbflags[tid][pnb_list[tid][j]] = false;
+
+			bi_nbs[tid].clear();
+			vec_out[tid].clear();
+			vec_in[tid].clear();
+			temp_vec[tid].clear();
 		} else {
 			mpplvl2_nbs[i] = new int[1];
 			mpplvl2_nbs[i][0] = 0;
 		}
 	}
+	auto end = steady_clock::now();
+	float duration = (float)duration_cast<microseconds>(end - start).count() / 1000000;
+    std::cout << "**** 2hop execution Time ****:" << duration << std::endl;
 
 	for(int i=0; i<num_compers; i++)
 	{
@@ -4177,6 +4457,36 @@ int comp_vertex_freq(const void *e1, const void *e2) // sort by (nclique_deg, nc
 		return 1;
 	else
 		return 0;
+}
+
+bool comp_vertex_freq_parallel(const VERTEX p2, const VERTEX p1) // sort by (nclique_deg, ncand_deg)
+{
+	if(p1.bis_cand && !p2.bis_cand)
+		return false;
+	else if(!p1.bis_cand && p2.bis_cand)
+		return true;
+	else if(p1.bto_be_extended && !p2.bto_be_extended)
+		return false;
+	else if(!p1.bto_be_extended && p2.bto_be_extended)
+		return true;
+	else if(min(p1.nclique_deg_i, p1.nclique_deg_o) < min(p2.nclique_deg_i, p2.nclique_deg_o)) // primary key: nclique_deg
+		return false;
+	else if(min(p1.nclique_deg_i, p1.nclique_deg_o) > min(p2.nclique_deg_i, p2.nclique_deg_o))
+		return true;
+	else if(min(p1.ncand_deg_i, p1.ncand_deg_o) < min(p2.ncand_deg_i, p2.ncand_deg_o)) // secondary key: ncand_deg
+		return false;
+	else if(min(p1.ncand_deg_i, p1.ncand_deg_o) > min(p2.ncand_deg_i, p2.ncand_deg_o))
+		return true;
+	else if(p1.nlvl2_nbs < p2.nlvl2_nbs) // next key: |vertices_within_2hops|
+		return false;
+	else if(p1.nlvl2_nbs > p2.nlvl2_nbs)
+		return true;
+	else if(p1.nvertex_no < p2.nvertex_no) // next key: ID
+		return false;
+	else if(p1.nvertex_no > p2.nvertex_no)
+		return true;
+	else
+		return true;
 }
 
 int comp_int(const void *e1, const void *e2)

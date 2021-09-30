@@ -1,9 +1,6 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#define BOUND
-//#define COVER
-#define FIRST_COVER
 
 #include <vector>
 #include <stdlib.h>
@@ -28,7 +25,6 @@ int gnmin_size;
 int gnmax_size;
 int gnmin_deg_o;
 int gnmin_deg_i;
-//Guimu-condense
 int *index2id;
 float disk_time;
 float hop2_time;
@@ -726,7 +722,6 @@ inline void Graph::Output1Clique(VERTEX *pclique, int nclique_size, FILE *gfpout
 
 }
 
-//Guimu-condense:
 void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
 {
 	int i, j, nvertex_no, norder;
@@ -1023,7 +1018,6 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 	nmax_deg = 0;
 	nmaxdeg_vertex = 0;
 
-#ifdef FIRST_COVER
 	for(i=0;i<num_of_vertices;i++)
 	{
 		if(pvertices[i].bis_cand)
@@ -1054,16 +1048,9 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 		pvertices[0] = onevertex;
 	}
 
+	__gnu_parallel::sort(&pvertices[1], &pvertices[1]+num_of_vertices-1, comp_vertex_freq_parallel);
 //	qsort(&pvertices[1], num_of_vertices-1, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
 
-	__gnu_parallel::sort(&pvertices[1], &pvertices[1]+num_of_vertices-1, comp_vertex_freq_parallel);
-
-#else
-//	qsort(&pvertices[0], num_of_vertices, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
-	__gnu_parallel::sort(&pvertices[0], &pvertices[0]+num_of_vertices, comp_vertex_freq_parallel);
-#endif
-
-	//Guimu-condense: condense the graph
 	CompressGraph(pvertices, num_of_cands);
 
 
@@ -1689,7 +1676,6 @@ void Graph::CalcLUBound(VERTEX *pvertices, int nclique_size, int *pcand_clqdegs_
 	//pclq_stat->nmax_cands = num_of_valid_cands;
 
 	//pruning
-#ifdef BOUND
 	if(nclique_size+pclq_stat->nmax_cands<gnmin_size)
 		pclq_stat->nmax_cands = 0;
 
@@ -1714,7 +1700,6 @@ void Graph::CalcLUBound(VERTEX *pvertices, int nclique_size, int *pcand_clqdegs_
 			}
 		}
 	}
-#endif
 }
 
 int Graph::AddOneVertex(VERTEX *pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, int ncur_pos, bool bhas_tail, VERTEX *pnew_vertices, int &num_of_new_tails, CLQ_STAT *pclq_stat)
@@ -1724,7 +1709,6 @@ int Graph::AddOneVertex(VERTEX *pvertices, int nclique_size, int num_of_cands, i
 	int ntotal_new_exts, num_of_new_cands, num_of_valid_cands, num_of_rmved_cands, num_of_valid_exts;
 	int nmin_ext_deg_o, nmin_ext_deg_i;
 	int **pplvl2_nbs, **ppadj_lists_o, **ppadj_lists_i, nvertexset_size, *pcand_clqdegs_o, *pcand_clqdegs_i;
-	bool is_valid_can;
 
 	VerifyVertices(pvertices, nclique_size, num_of_cands, num_of_tail_vertices, false);
 
@@ -1897,14 +1881,7 @@ int Graph::AddOneVertex(VERTEX *pvertices, int nclique_size, int num_of_cands, i
 		for(i=0;i<num_of_new_cands;i++)
 		{
 			//Type-I Degree-, Upper- and Lower-Bound Based Pruning (P3, P4, P5 in vldb paper)
-#ifdef BOUND
-			is_valid_can = IsValidCand(&pnew_cands[i], nclique_size+1, pclq_stat);
-#else
-			is_valid_can = true;
-#endif
-
-
-			if(pnew_cands[i].bto_be_extended && is_valid_can)
+			if(pnew_cands[i].bto_be_extended && IsValidCand(&pnew_cands[i], nclique_size+1, pclq_stat))
 				gpremain_vertices[num_of_valid_cands++] = i;
 			else
 				gpremoved_vertices[num_of_rmved_cands++] = i;
@@ -1979,12 +1956,7 @@ int Graph::AddOneVertex(VERTEX *pvertices, int nclique_size, int num_of_cands, i
 			num_of_valid_exts = 0;
 			for(i=0;i<num_of_valid_cands;i++)
 			{
-#ifdef BOUND
-				is_valid_can = IsValidCand(&pnew_cands[gpremain_vertices[i]], nclique_size+1, pclq_stat);
-#else
-				is_valid_can = true;
-#endif
-				if(is_valid_can)
+				if(IsValidCand(&pnew_cands[gpremain_vertices[i]], nclique_size+1, pclq_stat))
 				{
 					int index = num_of_valid_exts++;
 					pcand_clqdegs_o[index] = pnew_cands[gpremain_vertices[i]].nclique_deg_o;
@@ -2001,12 +1973,7 @@ int Graph::AddOneVertex(VERTEX *pvertices, int nclique_size, int num_of_cands, i
 			num_of_rmved_cands = 0;
 			for(i=0;i<num_of_valid_cands;i++)
 			{
-#ifdef BOUND
-			is_valid_can = IsValidCand(&pnew_cands[gpremain_vertices[i]], nclique_size+1, pclq_stat);
-#else
-			is_valid_can = true;
-#endif
-				if(is_valid_can)
+				if(IsValidCand(&pnew_cands[gpremain_vertices[i]], nclique_size+1, pclq_stat))
 					gpremain_vertices[num_of_valid_exts++] = gpremain_vertices[i];
 				else
 					gpremoved_vertices[num_of_rmved_cands++] = gpremain_vertices[i];
@@ -2257,7 +2224,6 @@ void Graph::CrtcVtxPrune(VERTEX *pvertices, int &nclique_size, int &num_of_cands
 			pvertices[i].bto_be_extended = false;
 	}
 	//---------------------------------------------------------------------
-	#ifdef BOUND
 
 	if(num_of_valid_cands>0)
 	{
@@ -2373,12 +2339,10 @@ void Graph::CrtcVtxPrune(VERTEX *pvertices, int &nclique_size, int &num_of_cands
 		}
 	}
 	//==================================================================================================
-	#endif
 
 	for(i=0;i<num_of_vertices;i++)
 		gpvertex_order_map[pvertices[i].nvertex_no] = -1;
 
-#ifdef BOUND
 	if(num_of_valid_cands==0 || pclq_stat->nmax_cands==0 || pclq_stat->nmax_cands<pclq_stat->nmin_cands ||
 		num_of_valid_cands<pclq_stat->nmin_cands)
 	{
@@ -2401,7 +2365,6 @@ void Graph::CrtcVtxPrune(VERTEX *pvertices, int &nclique_size, int &num_of_cands
 		num_of_cands = num_of_valid_cands;
 		num_of_tail_vertices = num_of_new_tails;
 	}
-#endif
 }
 
 bool Graph::GenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices)
@@ -3694,6 +3657,15 @@ int Graph::LoadGraph(char* szgraph_file) // create 1-hop neighbors
 
 	mnum_of_vertices = num_of_vertices;
 
+//	if(gdmin_deg_ratio<=(double)(num_of_vertices-2)/(num_of_vertices-1)) //whether 2-hop neighbors need to be considered (otherwise, it only need to consider one-hop neighbors)
+//	{
+//		mblvl2_flag = true;
+//		GenLevel2NBs();
+//		//OutputLvl2Graph("lvl2graph.txt");
+//	}
+//	else
+//		mblvl2_flag = false;
+
 	printf("Maximal vertex degree: %d\n", nmax_deg); // max_deg just for printing...
 
 	return num_of_vertices;
@@ -3731,9 +3703,14 @@ int Graph::LoadGraph(char* szgraph_file) // create 1-hop neighbors
 //	}
 //
 //	//-------
+////	int* set_out_single = new int[mnum_of_vertices];
+////	int* set_in_single = new int[mnum_of_vertices];
+////	memset(set_out_single, 0, sizeof(int)*mnum_of_vertices);
+////	memset(set_in_single, 0, sizeof(int)*mnum_of_vertices);
+//
 //	mpplvl2_nbs = new int*[mnum_of_vertices]; // mpplvl2_nbs[i] = node i's level-2 neighbors, first element keeps the 2-hop-list length
 //	//need to delete
-//#pragma omp parallel for schedule(dynamic, 1) num_threads(num_compers)
+//#pragma omp parallel for schedule(dynamic, 64) num_threads(num_compers)
 //	for(int i=0; i<mnum_of_vertices; i++)
 //	{
 //		vector<int> bi_nbs;
@@ -4225,6 +4202,7 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 	delete []temp_array2;
 }
 
+
 void Graph::OutputLvl2Graph(char* szoutput_filename) // seems just for debugging GenLevel2NBs() in Line 1850
 {
 	FILE *fp;
@@ -4458,7 +4436,6 @@ int comp_vertex_freq(const void *e1, const void *e2) // sort by (nclique_deg, nc
 	else
 		return 0;
 }
-
 bool comp_vertex_freq_parallel(const VERTEX p2, const VERTEX p1) // sort by (nclique_deg, ncand_deg)
 {
 	if(p1.bis_cand && !p2.bis_cand)

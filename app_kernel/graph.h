@@ -2,7 +2,7 @@
 #define GRAPH_H
 
 #define BOUND
-//#define COVER
+#define COVER
 #define FIRST_COVER
 
 #include <vector>
@@ -30,6 +30,7 @@ int gnmin_deg_o;
 int gnmin_deg_i;
 //Guimu-condense
 int *index2id;
+map<int, int> id2index_map;
 float disk_time;
 float hop2_time;
 
@@ -739,7 +740,6 @@ void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
 	ppnew_lvl2_nbs = new int*[num_of_cands];
 
 	//translate candidate vertex id to index
-	map<int, int> id2index_map;
 	index2id = new int[num_of_cands];
 	for(i=0;i<num_of_cands;i++)
 	{
