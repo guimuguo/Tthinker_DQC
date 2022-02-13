@@ -82,7 +82,3 @@ with open('cite_d', 'w') as f1:
 
 print("# of authors: ", name_idx)
 print("# of edges: ", total_edges)
-
-
-    
-    
