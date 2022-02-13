@@ -55,7 +55,7 @@ In each folder, `app_qc` and `maximal_check`, there is a Makefile. Just enter ea
 ## Demo
 Click [here](https://colab.research.google.com/drive/1Cn0cB9uZ8uOtlPbAfTWw9g0NM9qBrkxC?usp=sharing) for a demo on Google Colab. The notebook first clones the repo and download the [Google-Web](https://snap.stanford.edu/data/web-Google.html) dataset. It then runs the quasi-clique mining program to find maximal results. Finally, it plots the first and second largest quasi-cliques.
 
-Click [here](https://colab.research.google.com/drive/1V4LOIcPLcaiwQUkGZPGEgUt4tcXa3et3?usp=sharing) for another demo on Citation Graph. The notebook first clones the repo and download the [Citation Graph](https://lfs.aminer.cn/lab-datasets/soinf/citation-raw.txt) dataset. It then runs the quasi-clique mining program to find maximal results for both (0.75, 0.75)-Quasi-Clique and (0.6, 0.4)-Quasi-Clique to show versatility of our method.
+Click [here](https://colab.research.google.com/drive/1V4LOIcPLcaiwQUkGZPGEgUt4tcXa3et3?usp=sharing) for another demo on Google Colab. The notebook first clones the repo and download the [Citation Graph](https://lfs.aminer.cn/lab-datasets/soinf/citation-raw.txt) dataset. It then runs the quasi-clique mining program to find maximal results for both (0.75, 0.75)-Quasi-Clique and (0.6, 0.4)-Quasi-Clique to show versatility of our method.
 
 ## Requirements
 
