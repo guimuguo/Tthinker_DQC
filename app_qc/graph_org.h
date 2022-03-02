@@ -170,7 +170,7 @@ public:
 //	void operator=(const Graph &obj);
 	void SetupGraph(int nclique_size, int num_of_cands, int num_of_tail_vertices);
 	void ClearGraph();
-	void CompressGraph(VERTEX *pvertices, int num_of_cands);
+	void CompressGlobalGraph(VERTEX *pvertices, int num_of_cands);
 	void GenLevel2NBs();
 	void ReverseAdj(int num_of_vertices, int nbuf_size);
 	int LoadGraph(char* szgraph_file);
@@ -722,7 +722,7 @@ inline void Graph::Output1Clique(VERTEX *pclique, int nclique_size, FILE *gfpout
 
 }
 
-void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
+void Graph::CompressGlobalGraph(VERTEX *pvertices, int num_of_cands)
 {
 	int i, j, nvertex_no, norder;
 	for(i=0;i<num_of_cands;i++)
@@ -1051,7 +1051,7 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 	__gnu_parallel::sort(&pvertices[1], &pvertices[1]+num_of_vertices-1, comp_vertex_freq_parallel);
 //	qsort(&pvertices[1], num_of_vertices-1, sizeof(VERTEX), comp_vertex_freq); // sort by pvertices[1, ...] by (nclique_deg, ncand_deg) ------> try out to see if this makes a big difference in performance?
 
-	CompressGraph(pvertices, num_of_cands);
+	CompressGlobalGraph(pvertices, num_of_cands);
 
 
 //	delete []pvertices;
