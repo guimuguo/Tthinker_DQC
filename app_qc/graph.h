@@ -176,6 +176,7 @@ public:
 	void ClearGraph();
 	void CompressGlobalGraph(VERTEX *pvertices, int num_of_cands);
 	void GenLevel2NBs();
+	void GenLevelNhops(int n);
 	void ReverseAdj(int num_of_vertices, int nbuf_size);
 	int LoadGraph(char* szgraph_file);
 	void DestroyGraph();
@@ -878,7 +879,21 @@ VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
 	{
 		mblvl2_flag = true;
 		l_start = steady_clock::now();
-		GenLevel2NBs();
+		
+		if(gdmin_deg_ratio_o>=0.5 && gdmin_deg_ratio_i>=0.5) 
+		{
+			GenLevel2NBs();
+		}
+		else
+		{
+			int n;
+			if(gdmin_deg_ratio_o > gdmin_deg_ratio_i) 
+				n = ceil(3/gdmin_deg_ratio_o-1);
+			else
+				n = ceil(3/gdmin_deg_ratio_i-1);
+			GenLevelNhops(n);
+		}
+
 		l_end = steady_clock::now();
 		hop2_time = (float)duration_cast<milliseconds>(l_end - l_start).count() / 1000;
 	}
@@ -4223,6 +4238,59 @@ void Graph::GenLevel2NBs()  // create 2-hop neighbors
 	delete []set_in_single;
 	delete []temp_array;
 	delete []temp_array2;
+}
+
+void Graph::GenLevelNhops(int n) // create N-hops neighbors
+{	
+	mpplvl2_nbs = new int*[mnum_of_vertices];
+
+	bool *pbflags = new bool[mnum_of_vertices];
+	int *pnb_list = new int[mnum_of_vertices];
+	memset(pbflags, false, sizeof(bool)*mnum_of_vertices);
+
+	int cnt;
+	
+	for(int i=0; i<mnum_of_vertices; i++) {
+		std::queue<int> que;
+		que.push(i);
+
+		int nlist_len = 0;
+		cnt = n;
+
+		while(cnt-- > 0) {
+			int size = que.size();
+
+			for(int j=0; j<size; j++) {
+				int cur = que.front();
+				que.pop();
+				if(pbflags[cur]) {
+					continue;
+				}
+				pbflags[cur] = true;
+				if(cur != i) pnb_list[nlist_len++] = cur;
+				// out-neighbor
+				for(int k=1; k<=mppadj_lists_o[cur][0]; k++) {
+					int nbr = mppadj_lists_o[cur][k];
+					que.push(nbr);
+				}
+				// in-neighbor
+				for(int k=1; k<=mppadj_lists_i[cur][0]; k++) {
+					int nbr = mppadj_lists_i[cur][k];
+					que.push(nbr);
+				}
+			}
+		}
+		if(nlist_len>1)
+			qsort(pnb_list, nlist_len, sizeof(int), comp_int);
+		mpplvl2_nbs[i] = new int[nlist_len+1];
+		mpplvl2_nbs[i][0] = nlist_len;
+		if(nlist_len>0)
+			memcpy(&mpplvl2_nbs[i][1], pnb_list, sizeof(int)*nlist_len);
+
+		memset(pbflags, false, sizeof(bool)*mnum_of_vertices);
+	}
+	delete[] pbflags;
+	delete[] pnb_list;
 }
 
 void Graph::OutputLvl2Graph(char* szoutput_filename) // seems just for debugging GenLevel2NBs() in Line 1850
