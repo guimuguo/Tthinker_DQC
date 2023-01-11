@@ -75,6 +75,8 @@ int main(int argc, char **argv)
     gnmin_deg_o = ceil(gdmin_deg_ratio_o * (gnmin_size - 1));
     gnmin_deg_i = ceil(gdmin_deg_ratio_i * (gnmin_size - 1));
     TIME_THRESHOLD = atof(argv[6]); // tau_time
+    MAX_RESULT_FOUND = atoi(argv[7]);
+    
     if (argc > 7)
         BIGTASK_THRESHOLD = atof(argv[7]); // tau_split
     if (argc > 8)
