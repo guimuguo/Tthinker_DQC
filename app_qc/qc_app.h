@@ -30,6 +30,10 @@ VERTEX *global_pvertices;
 int num_of_cands;
 
 Trie<char> *trie;
+int MAX_RESULT_FOUND;
+std::atomic<int> cur_result_found{0};
+
+
 
 struct ContextValue
 {
@@ -250,6 +254,7 @@ public:
 
 	int Expand(VERTEX *pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, FILE *gfpout, Graph& gograph)
 	{
+
 		VERTEX *pnew_vertices, *pnew_cands, *pclique;
 		int num_of_vertices, num_of_new_cands, i, j, num_of_new_tail_vertices, nmin_deg_o, nmin_deg_i;
 		bool bis_subsumed, blook_succeed, bgen_new_lvl2nbs;
@@ -263,6 +268,9 @@ public:
 		pnew_vertices = new VERTEX[num_of_vertices];
 		pclique = new VERTEX[nclique_size+1];
 		nmax_clique_size = 0;
+
+		if (cur_result_found > MAX_RESULT_FOUND)
+			goto EXIT;
 
 		for(i=nclique_size;i<nclique_size+num_of_cands && pvertices[i].bis_cand && pvertices[i].bto_be_extended;i++) // not iterating covered vertices (segment 3)
 		{
@@ -390,6 +398,14 @@ public:
 								num_of_new_tail_vertices = 0;
 							else if(num_of_new_tail_vertices==0)
 								num_of_new_tail_vertices = gograph.GenTailVertices(pvertices, nclique_size, num_of_cands, num_of_tail_vertices, i, pnew_vertices, nnew_clique_size);
+							
+							// ============ add MAX_RESULT CONSTRAIN ==================
+							int ret = cur_result_found.fetch_add(1, std::memory_order_relaxed);
+							if (ret + 1 > MAX_RESULT_FOUND)
+								goto EXIT;
+							// ============ add MAX_RESULT CONSTRAIN ==================
+
+
 							gograph.OutputOneClique(pnew_vertices, nnew_clique_size, num_of_new_tail_vertices, gfpout);
 							if(nmax_clique_size<nnew_clique_size)
 								nmax_clique_size = nnew_clique_size;
@@ -408,6 +424,13 @@ public:
 							{
 								memcpy(pnew_vertices, pclique, sizeof(VERTEX)*(nclique_size+1));
 								num_of_new_tail_vertices = 0;
+
+								// ============ add MAX_RESULT CONSTRAIN ==================
+								int ret = cur_result_found.fetch_add(1, std::memory_order_relaxed);
+								if (ret + 1 > MAX_RESULT_FOUND)
+									goto EXIT;
+								// ============ add MAX_RESULT CONSTRAIN ==================
+
 								gograph.OutputOneClique(pnew_vertices, nclique_size+1, num_of_new_tail_vertices, gfpout);
 								if(nmax_clique_size<nclique_size+1)
 									nmax_clique_size = nclique_size+1;
@@ -430,7 +453,9 @@ public:
 	//	if(num_of_cands>=10 && nmax_clique_size==0 && nisvalid==1)
 	//		printf("stop\n");
 
+EXIT:
 		return nmax_clique_size;
+
 	}
 
 	virtual bool task_spawn(int &data) // why when add const to arguments, it will not reach this method !!!
