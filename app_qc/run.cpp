@@ -150,6 +150,11 @@ int main(int argc, char **argv)
     cout << "Testing ends..." << endl;
 
     log("Done");
+
+    if(output_warning)
+    {
+        cout << "WARNING ..." << endl;
+    }
 }
 
 //./run ...

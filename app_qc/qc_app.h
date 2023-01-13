@@ -32,6 +32,7 @@ int num_of_cands;
 Trie<char> *trie;
 int MAX_RESULT_FOUND;
 std::atomic<int> cur_result_found{0};
+std::atomic<bool> output_warning{false};
 
 
 
@@ -270,7 +271,10 @@ public:
 		nmax_clique_size = 0;
 
 		if (cur_result_found > MAX_RESULT_FOUND)
+		{
+			output_warning = true;
 			goto EXIT;
+		}
 
 		for(i=nclique_size;i<nclique_size+num_of_cands && pvertices[i].bis_cand && pvertices[i].bto_be_extended;i++) // not iterating covered vertices (segment 3)
 		{
